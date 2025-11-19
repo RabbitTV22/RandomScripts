@@ -19,7 +19,7 @@ elif command -v pacman >/dev/null 2>&1; then
 fi
 
 
-if [ $logged_in -eq 1 ]; then
+if [ "$logged_in" -eq 1 ]; then
     clear
     case $package_manager in
     apt-get)
