@@ -33,7 +33,7 @@ if [ $logged_in -eq 1 ]; then
         return_menu
         ;;
     pacman)
-        sudo pacman -S top btop htop nmap
+        sudo pacman -S btop htop nmap
         echo "Please put in your password to install the required packages."
         return_menu
         ;;
