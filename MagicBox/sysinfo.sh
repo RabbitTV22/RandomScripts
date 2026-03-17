@@ -14,7 +14,7 @@ if [ $logged_in -eq 1 ]; then
     echo "IPv4 Address:" $(nmcli | grep "inet4" | awk '{print $2}' | head -1)
     echo "IPv6 Address:" $(nmcli | grep "inet6" | awk '{print $2}' | head -1)
     echo "DNS Server(s):" $(nmcli | grep "servers" | awk '{print $2}')
-    echo "MAC Address:" $(nmcli | grep "ethernet" | awk '{print $3}')
+    echo "MAC Address(es):" $(nmcli | grep "ethernet" | awk '{print $3}')
     echo "Default Gateway:" $(nmcli | grep "route4" | awk '{print $4}' | tail -1)
     echo
     read -p "Press Enter to return to main menu..."
