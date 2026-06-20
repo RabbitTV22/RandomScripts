@@ -13,4 +13,4 @@ java -jar -Xms${ram}G -Xmx${ram}G --add-modules=jdk.incubator.vector -XX:+UseG1G
 EOF
 chmod +x s.sh
 ./s.sh
-rm setup.sh
+rm setup_purpur.sh
