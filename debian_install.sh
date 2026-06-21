@@ -4,11 +4,11 @@ apt update -y
 
 apt upgrade -y
 
-useradd -m alec
+#useradd -m alec
 
 clear
 
-passwd alec
+#passwd alec
 
 apt install git sudo curl vim -y
 
