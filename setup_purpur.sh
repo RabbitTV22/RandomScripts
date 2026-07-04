@@ -4,7 +4,8 @@ echo "Which version?"
 read version
 echo "How much ram? (Gb)"
 read ram
-
+mkdir purpur-$version
+cd purpur-$version
 echo "eula=true" >> eula.txt
 wget -O purpur.jar https://api.purpurmc.org/v2/purpur/$version/latest/download
 cat > s.sh <<EOF
