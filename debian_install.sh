@@ -35,7 +35,7 @@ iface $int inet static
         gateway $gateway
 
 EOF
-
+echo nameserver 9.9.9.9 > /etc/resolv.conf
 systemctl restart networking
 
 fi
