@@ -36,7 +36,7 @@ iface $int inet static
         dns-nameservers 9.9.9.9
 
 EOF
-
+sudo dhcpcd -k
 systemctl restart networking
 
 fi
