@@ -33,6 +33,7 @@ iface $int inet static
         address $addr
         netmask $mask
         gateway $gateway
+        dns-nameservers 9.9.9.9
 
 EOF
 
