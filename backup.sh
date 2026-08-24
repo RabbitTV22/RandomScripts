@@ -1,12 +1,15 @@
 #!/bin/bash
 set -euo pipefail
 
-exec > /var/log/$backup_name.log 2>&1
-
+#############
+# Variables #
+#############
 date=$(date "+%Y-%m-%d_%H-%M-%S")
 dir_to_backup="/dir/to/backup"
 backup_dir="/backup/dir/"
 backup_name="backupName"
+
+exec > /var/log/$backup_name.log 2>&1
 
 if [ ! -d "/etc/server-backup" ]; then
     mkdir /etc/server-backup
