@@ -233,3 +233,5 @@ Then wait again for the deployment to complete.
 Once everything is working you can visit your tailscale funnel URL and you should be prompted to log in. The username is `admin` and the password is the password you set in values.yaml.
 
 The server is extremely slow so if something seems to be loading for a long time its fine, just give it time.
+
+Rebooting after everything is complete can take up to 10-15 minutes.
