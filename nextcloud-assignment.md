@@ -86,7 +86,7 @@ sudo exportfs -rav
 
 ## Step 5 - Install K3S
 
-For this step, we will need to install k3s from the AUR (Arch User Repository).
+For this step, we will need to install k3s from the AUR (Arch User Repository)
 ```sh
 sudo pacman -S git fakeroot # install requirements
 git clone https://aur.archlinux.org/k3s-bin.git && cd k3s-bin # clone the k3s repository from the AUR
@@ -97,7 +97,7 @@ And now enable the service.
 sudo systemctl enable --now k3s
 ```
 
-Now, wait for the node and containers to start before proceeding.
+Now, wait for the node and containers to start before proceeding
 ```sh
 sudo k3s kubectl get nodes # should have a status of Ready
 sudo k3s kubectl get pods -A # should have 7 pods that have status of Running or 0/1 Completed
@@ -111,7 +111,7 @@ Use pacman to install Helm
 sudo pacman -S helm
 ```
 
-Create some required directories.
+Create some required directories
 ```sh
 mkdir -p ~/.kube
 sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
@@ -124,7 +124,7 @@ helm repo add nfs-subdir https://kubernetes-sigs.github.io/nfs-subdir-external-p
 helm install nfs-storage nfs-subdir/nfs-subdir-external-provisioner --set nfs.server=127.0.0.1 --set nfs.path=/srv/nfs/nextcloud
 ```
 
-Wait until the pod says Running.
+Wait until the pod says Running
 ```sh
 sudo watch k3s kubectl get pods -A
 ```
@@ -147,7 +147,85 @@ Take note of you tailscale funnel
 tailscale funnel status # you will need the DNS name
 ```
 
+Now, download the values.yaml for nextcloud
+```sh
+wget https://raw.githubusercontent.com/nextcloud/all-in-one/main/nextcloud-aio-helm-chart/values.yaml
+```
 
+Edit the values.yaml and change all of the values that are marked with TODO. The APACHE_PORT must also be changed to 11000.
+**Make sure none of your password contain `@` or `!`**
+```sh
+vim values.yaml
+```
+```yaml
+DATABASE_PASSWORD:           # TODO! This needs to be a unique and good password!
+EUROOFFICE_SECRET:           # TODO! This needs to be a unique and good password!
+FULLTEXTSEARCH_PASSWORD:           # TODO! This needs to be a unique and good password!
+HP_SHARED_KEY:           # TODO! This needs to be a unique and good password!
+IMAGINARY_SECRET:           # TODO! This needs to be a unique and good password!
+NC_DOMAIN: yourdomain.com          # TODO! Set this to the tailscale domain. Exclude the https:// it must be only the domain.
+NEXTCLOUD_PASSWORD:           # TODO! This is the password of the initially created Nextcloud admin with username admin.
+ONLYOFFICE_SECRET:           # TODO! This needs to be a unique and good password!
+RECORDING_SECRET:           # TODO! This needs to be a unique and good password!
+REDIS_PASSWORD:           # TODO! This needs to be a unique and good password!
+SIGNALING_SECRET:           # TODO! This needs to be a unique and good password!
+TALK_INTERNAL_SECRET:           # TODO! This needs to be a unique and good password!
+TIMEZONE: America/Toronto          # TODO! This is the timezone that your containers will use.
+TURN_SECRET:           # TODO! This needs to be a unique and good password!
+WHITEBOARD_SECRET:           # TODO! This needs to be a unique and good password!
 
+APACHE_PORT: 443
+```
 
+Next, add the Nextcloud repo
+```sh
+helm repo add nextcloud-aio https://nextcloud.github.io/all-in-one/
+```
+And install Nextcloud
+```sh
+helm install nextcloud-aio nextcloud-aio/nextcloud-aio-helm-chart -f values.yaml
+```
 
+This is the part that will take the longest. Sometimes it can take up to an hour.
+Before waiting, you can make sure it is all working:
+```sh
+sudo k3s kubectl get pv # Check if container storage volumes were successfully assigned
+sudo k3s kubectl get pods -A # Check status of all containers
+sudo watch k3s kubectl get pods -A # Monitor status of all containers (press CTRL-C to exit)
+sudo k3s kubectl logs -n default deployment/nextcloud-aio-nextcloud -f # Follow the logs of the nextcloud container (press CTRL-C to exit)
+sudo k3s kubectl logs -n default deployment/nextcloud-aio-database -f # Follow the logs of the database container (press CTRL-C to exit)
+sudo k3s kubectl logs -n default deployment/nextcloud-aio-apache --tail=50 # Dump the logs of the apache container
+```
+**Run these two commands right after deploying Nextcloud**
+```sh
+sudo k3s kubectl patch deployment nextcloud-aio-nextcloud -n default --type=json -p='[ # Patch the nextcloud container to stop kubernetes from killing it
+  {"op": "remove", "path": "/spec/template/spec/containers/0/livenessProbe"}
+]'
+
+sudo k3s kubectl patch deployment nextcloud-aio-database -n default --type=json -p='[ # Patch the database container to stop kubernetes from killing it
+  {"op": "remove", "path": "/spec/template/spec/containers/0/livenessProbe"}
+]'
+```
+If the nextcloud container logs seem stuck at Initializing Nextcloud, dont touch anything it is just taking a long time and everything is working
+
+The important one to look out for is the database container. If you get the error `FATAL: role "oc_nextcloud" does not exist` follow these steps:
+```sh
+helm uninstall nextcloud-aio # Delete Nextcloud helm deployment
+sudo k3s kubectl delete pvc --all # Delete all pvc and pv
+sudo systemctl disable --now k3s nfs-server # Stop the k3s and NFS service
+sudo umount -f -l $(mount | grep nextcloud | awk '{print $3}') # Unmount any leftover mounts
+sudo rm -rf /srv/nfs/nextcloud/* /srv/nfs/nextcloud/.* 2>/dev/null # Delete all NFS files
+sudo systemctl enable --now k3s nfs-server # Re-enable k3s and NFS service
+helm install nextcloud-aio nextcloud-aio/nextcloud-aio-helm-chart -f values.yaml # Reinstall Nextcloud AIO
+
+# Re-patch deployments
+sudo k3s kubectl patch deployment nextcloud-aio-nextcloud -n default --type=json -p='[
+  {"op": "remove", "path": "/spec/template/spec/containers/0/livenessProbe"}
+]'
+
+sudo k3s kubectl patch deployment nextcloud-aio-database -n default --type=json -p='[
+  {"op": "remove", "path": "/spec/template/spec/containers/0/livenessProbe"}
+]'
+
+```
+Then wait again for the deployment to complete.
