@@ -198,13 +198,13 @@ sudo k3s kubectl logs -n default deployment/nextcloud-aio-apache --tail=50 # Dum
 ```
 **Run these two commands right after deploying Nextcloud**
 ```sh
-sudo k3s kubectl patch deployment nextcloud-aio-nextcloud -n default --type=json -p='[ # Patch the nextcloud container to stop kubernetes from killing it
+sudo k3s kubectl patch deployment nextcloud-aio-nextcloud -n default --type=json -p='[
   {"op": "remove", "path": "/spec/template/spec/containers/0/livenessProbe"}
-]'
+]' # Patch the nextcloud container to stop kubernetes from killing it
 
-sudo k3s kubectl patch deployment nextcloud-aio-database -n default --type=json -p='[ # Patch the database container to stop kubernetes from killing it
+sudo k3s kubectl patch deployment nextcloud-aio-database -n default --type=json -p='[
   {"op": "remove", "path": "/spec/template/spec/containers/0/livenessProbe"}
-]'
+]' # Patch the database container to stop kubernetes from killing it
 ```
 If the nextcloud container logs seem stuck at Initializing Nextcloud, dont touch anything it is just taking a long time and everything is working
 
