@@ -5,7 +5,7 @@
 
 ## Step 1 - Create a tailscale account (if you dont have one already)
 
-Go to the (tailscale website)[https://tailscale.com] and click on "Get started - i'ts free!".
+Go to the [Tailscale website](https://tailscale.com) and click on "Get started - i'ts free!".
 Follow the account creation steps. It does not matter how you create your account. You could even use your personal email if you prefer.
 When creating the account, it will prompt you to add your first machine, do not do that yet and just click on skip this step.
 
