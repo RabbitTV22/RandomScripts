@@ -20,10 +20,10 @@ dir_to_backup="/dir/to/backup"
 backup_dir="/backup/dir/"
 backup_name="backupName"
 ```
-### Run the script once to generate the files and directories
+### Run the script once with the -i flag to generate the files and directories
 ```sh
 chmod u+x backup.sh
-./backup.sh
+./backup.sh -i
 ```
 ### Set the number of backups it will create before it starts deleting the oldest backup
 ```sh
