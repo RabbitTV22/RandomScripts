@@ -1,41 +1,99 @@
 #!/bin/bash
+
+# Stop the script if a command fails
 set -euo pipefail
 
 #############
 # Variables #
 #############
-date=$(date "+%Y-%m-%d_%H-%M-%S")
 dir_to_backup="/dir/to/backup"
 backup_dir="/backup/dir/"
 backup_name="backupName"
 
-exec > /var/log/$backup_name.log 2>&1
+# Timestamp variable
+timestamp=$(date "+%Y-%m-%d_%H-%M-%S")
 
-if [ ! -d "/etc/server-backup" ]; then
-    mkdir /etc/server-backup
+# Make sure root runs this script
+if [[ "$EUID" -ne 0 ]]; then
+    echo "You are not root. You must be root to run this script."
+    exit 1
 fi
 
-echo "[$date] Copying Server..."
-rsync -a $dir_to_backup "$backup_dir/$backup_name-$date/" 
-echo "[$date] Done copying"
+# Log the script in a file
+exec > "/var/log/$backup_name.log" 2>&1
 
-echo "[$date] Archiving Server..."
+# If script was ran with -i, initiate first run.
+firstRun=0
+while getopts i opt; do
+    case "$opt" in
+        i) firstRun=1 ;;
+    esac
+done
+
+# Execute first run install
+if [[ "$firstRun" -eq 1 ]]; then
+    if command -v apt >/dev/null 2>&1; then
+        if ! command -v rsync >/dev/null 2>&1; then
+            apt install rsync -y
+        fi
+    elif command -v dnf >/dev/null 2>&1; then
+        if ! command -v rsync >/dev/null 2>&1; then
+            dnf install rsync -y
+        fi
+    elif command -v pacman >/dev/null 2>&1; then
+        if ! command -v rsync >/dev/null 2>&1; then
+            pacman -S --noconfirm rsync
+        fi
+    fi
+
+    # Make sure the server-backup directory exists
+    if [ ! -d "/etc/server-backup" ]; then
+        mkdir -p /etc/server-backup/scripts
+    fi
+    # Make sure the backup directory exists
+    if [ ! -d "$backup_dir" ]; then
+        mkdir -p "$backup_dir"
+    fi
+    echo 5 > /etc/server-backup/backup-count.conf
+fi
+
+if [[ ! -d "$dir_to_backup" ]]; then
+    echo "[$timestamp] $dir_to_backup does not exist." 
+    exit 1
+fi
+
+# Copy server files to backup directory
+echo "[$timestamp] Copying Server..."
+rsync -a "$dir_to_backup/" "$backup_dir/$backup_name-$timestamp/" 
+echo "[$timestamp] Done copying"
+
+# Compress the files
+echo "[$timestamp] Archiving Server..."
 cd "$backup_dir"
-tar -czf "$backup_dir/$backup_name-$date.tar.gz" "$backup_name-$date"
-echo "[$date] Done archiving"
+tar -czf "$backup_dir/$backup_name-$timestamp.tar.gz.tmp" "$backup_name-$timestamp" # make the archive a temp file then move it to make sure it completes
+mv "$backup_dir/$backup_name-$timestamp.tar.gz.tmp" "$backup_dir/$backup_name-$timestamp.tar.gz"
+echo "[$timestamp] Done archiving"
 
-echo "[$date] Deleting folder $backup_dir/$backup_name-$date"
-rm -rf "$backup_dir/$backup_name-$date/"
-echo "[$date] Done deleting"
+# Delete the uncompressed folder
+echo "[$timestamp] Deleting folder $backup_dir/$backup_name-$timestamp"
+rm -rf "$backup_dir/$backup_name-$timestamp/"
+echo "[$timestamp] Done deleting"
 
-echo "$backup_name-$date" >> /etc/server-backup/$backup_name.txt
+# Add backup entry for this backup
+echo "$backup_name-$timestamp" >> /etc/server-backup/$backup_name.txt
 
-if [ $(wc -l < /etc/server-backup/$backup_name.txt) -gt $(cat /etc/server-backup/backup-count.conf) ]; then
-echo "[$date] Deleting old backup..."
-old_backup=$(head -1 /etc/server-backup/$backup_name.txt)
-tail -n +2 /etc/server-backup/$backup_name.txt > /etc/server-backup/$backup_name.tmp
-mv /etc/server-backup/$backup_name.tmp /etc/server-backup/$backup_name.txt
+# Check to delete old backup
+while [ $(wc -l < "/etc/server-backup/$backup_name.txt") -gt $(cat /etc/server-backup/backup-count.conf) ]; do
+    echo "[$timestamp] Deleting old backup..."
+    # Get the top line on the backup entries
+    old_backup=$(head -1 /etc/server-backup/$backup_name.txt)
+    # Copy everything but the top line to a temp file
+    tail -n +2 /etc/server-backup/$backup_name.txt > /etc/server-backup/$backup_name.tmp
+    # Override the backup entries with the temp file
+    mv /etc/server-backup/$backup_name.tmp /etc/server-backup/$backup_name.txt
+    # Delete the old archive
+    rm -f "$backup_dir/$old_backup.tar.gz"
+    echo "[$timestamp] Done deleting $old_backup"
+done
 
-rm -f "$backup_dir/$old_backup.tar.gz"
-echo "[$date] Done backup"
-fi
+echo "[$timestamp] Done backup"
