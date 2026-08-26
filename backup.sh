@@ -62,22 +62,14 @@ if [[ ! -d "$dir_to_backup" ]]; then
     exit 1
 fi
 
-# Copy server files to backup directory
-echo "[$timestamp] Copying Server..."
-rsync -a "$dir_to_backup/" "$backup_dir/$backup_name-$timestamp/" 
-echo "[$timestamp] Done copying"
-
-# Compress the files
-echo "[$timestamp] Archiving Server..."
-cd "$backup_dir"
-tar -czf "$backup_dir/$backup_name-$timestamp.tar.gz.tmp" "$backup_name-$timestamp" # make the archive a temp file then move it to make sure it completes
+# Move and compress the files
+echo "[$timestamp] Copying and Archiving Backup..."
+# Create folder to contain the files so they dont spill while decompressing
+tar --transform "s|^|$backup_name=$timestamp/|" -czf "$backup_dir/$backup_name-$timestamp.tar.gz.tmp" -C "$dir_to_backup" .
+# Move temp archive to final archive to make sure the compressing completes successfully
 mv "$backup_dir/$backup_name-$timestamp.tar.gz.tmp" "$backup_dir/$backup_name-$timestamp.tar.gz"
-echo "[$timestamp] Done archiving"
+echo "[$timestamp] Done copying and archiving"
 
-# Delete the uncompressed folder
-echo "[$timestamp] Deleting folder $backup_dir/$backup_name-$timestamp"
-rm -rf "$backup_dir/$backup_name-$timestamp/"
-echo "[$timestamp] Done deleting"
 
 # Add backup entry for this backup
 echo "$backup_name-$timestamp" >> /etc/server-backup/$backup_name.txt
