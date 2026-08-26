@@ -10,7 +10,7 @@ dir_to_backup="/dir/to/backup"
 backup_dir="/backup/dir/"
 backup_name="backupName"
 
-# Timestamp variable
+# Timestamp variable (year-month-day_hour-min-sec)
 timestamp=$(date "+%Y-%m-%d_%H-%M-%S")
 
 # Make sure root runs this script
